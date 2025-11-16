@@ -1,0 +1,235 @@
+{
+	"info": {
+		"_postman_id": "175a02e8-517a-4b1f-a45a-74dd2eb23b4c",
+		"name": "pull request service",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+		"_exporter_id": "34560992"
+	},
+	"item": [
+		{
+			"name": "teams",
+			"item": [
+				{
+					"name": "get team members",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/team/get?team_name=backend",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"team",
+								"get"
+							],
+							"query": [
+								{
+									"key": "team_name",
+									"value": "backend"
+								}
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "create team with members",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"team_name\": \"payments\",\n  \"members\": [\n    {\n      \"user_id\": \"u1\",\n      \"username\": \"Alice\",\n      \"is_active\": true\n    },\n    {\n      \"user_id\": \"u2\",\n      \"username\": \"Bob\",\n      \"is_active\": true\n    }\n  ]\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{base_url}}/team/add",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"team",
+								"add"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "create another team with members",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"team_name\": \"backend\",\n  \"members\": [\n    {\n      \"user_id\": \"u3\",\n      \"username\": \"Amir\",\n      \"is_active\": true\n    },\n    {\n      \"user_id\": \"u4\",\n      \"username\": \"Ayrat\",\n      \"is_active\": false\n    }\n  ]\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{base_url}}/team/add",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"team",
+								"add"
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "users",
+			"item": [
+				{
+					"name": "set flag",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"user_id\": \"u2\",\n  \"is_active\": true\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{base_url}}/users/setIsActive",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"users",
+								"setIsActive"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "user not found",
+					"request": {
+						"method": "POST",
+						"header": [],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"user_id\": \"u0\",\n  \"is_active\": false\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "{{base_url}}/users/setIsActive",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"users",
+								"setIsActive"
+							]
+						}
+					},
+					"response": []
+				},
+				{
+					"name": "get pr's",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/users/getReview?user_id=u3",
+							"host": [
+								"{{base_url}}"
+							],
+							"path": [
+								"users",
+								"getReview"
+							],
+							"query": [
+								{
+									"key": "user_id",
+									"value": "u3"
+								}
+							]
+						}
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "pull requests",
+			"item": [
+				{
+					"name": "create pull request",
+					"request": {
+						"method": "GET",
+						"header": []
+					},
+					"response": []
+				},
+				{
+					"name": "merge pull request",
+					"request": {
+						"method": "GET",
+						"header": []
+					},
+					"response": []
+				},
+				{
+					"name": "reassign member",
+					"request": {
+						"method": "GET",
+						"header": []
+					},
+					"response": []
+				}
+			]
+		}
+	],
+	"event": [
+		{
+			"listen": "prerequest",
+			"script": {
+				"type": "text/javascript",
+				"packages": {},
+				"requests": {},
+				"exec": [
+					""
+				]
+			}
+		},
+		{
+			"listen": "test",
+			"script": {
+				"type": "text/javascript",
+				"packages": {},
+				"requests": {},
+				"exec": [
+					""
+				]
+			}
+		}
+	],
+	"variable": [
+		{
+			"key": "base_url",
+			"value": ""
+		}
+	]
+}
