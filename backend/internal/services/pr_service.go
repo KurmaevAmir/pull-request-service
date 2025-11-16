@@ -26,7 +26,10 @@ type prService struct {
 	validator validators.PRValidator
 }
 
-func NewPRService(pr repositories.PRRepository, user repositories.UserRepository, val validators.PRValidator) PRService {
+func NewPRService(
+	pr repositories.PRRepository,
+	user repositories.UserRepository,
+	val validators.PRValidator) PRService {
 	return &prService{prRepo: pr, userRepo: user, validator: val}
 }
 

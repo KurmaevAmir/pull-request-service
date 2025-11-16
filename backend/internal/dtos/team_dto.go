@@ -19,3 +19,18 @@ type AddTeamRequest struct {
 type TeamResponse struct {
 	Team TeamDTO `json:"team"`
 }
+
+type BulkDeactivateRequest struct {
+	TeamName string   `json:"team_name"`
+	UserIDs  []string `json:"user_ids"`
+}
+
+type BulkDeactivateResponse struct {
+	DeactivatedUsers []string              `json:"deactivated_users"`
+	ReassignedPRs    []ReassignedPRSummary `json:"reassigned_prs"`
+}
+
+type ReassignedPRSummary struct {
+	PullRequestID string            `json:"pull_request_id"`
+	Replacements  map[string]string `json:"replacements"` // old_user_id -> new_user_id
+}

@@ -33,11 +33,6 @@ func main() {
 		log.Fatal(err)
 	}
 
-	teamRepo := repositories.NewPgTeamRepository(pool)
-	teamValidator := validators.NewTeamValidator(teamRepo)
-	teamService := services.NewTeamService(teamRepo, teamValidator)
-	teamHandler := handlers.NewTeamHandler(teamService)
-
 	userRepo := repositories.NewPgUserRepository(pool)
 	userValidator := validators.NewUserValidator()
 	userService := services.NewUserService(userRepo, userValidator)
@@ -48,7 +43,16 @@ func main() {
 	prService := services.NewPRService(prRepo, userRepo, prValidator)
 	prHandler := handlers.NewPRHandler(prService)
 
-	router := handlers.NewRouter(teamHandler, userHandler, prHandler)
+	teamRepo := repositories.NewPgTeamRepository(pool)
+	teamValidator := validators.NewTeamValidator(teamRepo)
+	teamService := services.NewTeamService(teamRepo, userRepo, prRepo, teamValidator)
+	teamHandler := handlers.NewTeamHandler(teamService)
+
+	statsRepo := repositories.NewStatsRepository(pool)
+	statsService := services.NewStatsService(statsRepo)
+	statsHandler := handlers.NewStatsHandler(statsService)
+
+	router := handlers.NewRouter(teamHandler, userHandler, prHandler, statsHandler)
 	if err := router.Run(":8080"); err != nil {
 		log.Fatal(err)
 	}
