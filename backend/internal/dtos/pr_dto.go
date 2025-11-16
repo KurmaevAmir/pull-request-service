@@ -1,6 +1,10 @@
 package dtos
 
-import "time"
+import (
+	"time"
+
+	"github.com/KurmaevAmir/pull-request-service/backend/internal/models"
+)
 
 type CreatePRRequest struct {
 	PullRequestID string `json:"pull_request_id" binding:"required"`
@@ -41,4 +45,9 @@ type PullRequestShort struct {
 	Title         string `json:"pull_request_name"`
 	AuthorUserID  string `json:"author_id"`
 	Status        string `json:"status"`
+}
+
+type PRWithReviewers struct {
+	PR        models.PullRequest
+	Reviewers []models.User
 }

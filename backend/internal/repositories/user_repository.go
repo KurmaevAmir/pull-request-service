@@ -20,6 +20,8 @@ type UserRepository interface {
 	GetTeamMembers(ctx context.Context, teamID int64) ([]models.User, error)
 	GetReviewerSlot(ctx context.Context, prInternalID int64, reviewerInternalID int64) (int, error)
 	GetByInternalID(ctx context.Context, internalID int64) (models.User, error)
+	BulkDeactivate(ctx context.Context, teamID int64, userIDs []string) ([]int64, error)
+	GetActiveForReassignment(ctx context.Context, teamID int64, excludeUserIDs []int64) ([]models.User, error)
 }
 
 type PgUserRepository struct {
@@ -154,7 +156,10 @@ func (r *PgUserRepository) GetTeamMembers(ctx context.Context, teamID int64) ([]
 	return memebers, rows.Err()
 }
 
-func (r *PgUserRepository) GetReviewerSlot(ctx context.Context, prInternalID int64, reviewerInternalID int64) (int, error) {
+func (r *PgUserRepository) GetReviewerSlot(
+	ctx context.Context,
+	prInternalID int64,
+	reviewerInternalID int64) (int, error) {
 	const q = `
 	  SELECT slot
 	  FROM pr_reviews
@@ -186,4 +191,60 @@ func (r *PgUserRepository) GetByInternalID(ctx context.Context, internalID int64
 		return models.User{}, err
 	}
 	return u, nil
+}
+
+func (r *PgUserRepository) BulkDeactivate(ctx context.Context, teamID int64, userIDs []string) ([]int64, error) {
+	const q = `
+        UPDATE users
+        SET is_active = FALSE
+        WHERE team_id = $1
+          AND user_id = ANY($2)
+          AND deleted_at IS NULL
+        RETURNING id
+    `
+	rows, err := r.pool.Query(ctx, q, teamID, userIDs)
+	if err != nil {
+		return nil, fmt.Errorf("bulk deactivate: %w", err)
+	}
+	defer rows.Close()
+
+	var ids []int64
+	for rows.Next() {
+		var id int64
+		if err := rows.Scan(&id); err != nil {
+			return nil, fmt.Errorf("scan deactivated id: %w", err)
+		}
+		ids = append(ids, id)
+	}
+	return ids, rows.Err()
+}
+
+func (r *PgUserRepository) GetActiveForReassignment(
+	ctx context.Context,
+	teamID int64,
+	excludeUserIDs []int64) ([]models.User, error) {
+	const q = `
+        SELECT id, user_id, name, team_id, is_active
+        FROM users
+        WHERE team_id = $1
+          AND is_active = TRUE
+          AND deleted_at IS NULL
+          AND id != ALL($2)
+        ORDER BY random()
+    `
+	rows, err := r.pool.Query(ctx, q, teamID, excludeUserIDs)
+	if err != nil {
+		return nil, fmt.Errorf("get active for reassignment: %w", err)
+	}
+	defer rows.Close()
+
+	var users []models.User
+	for rows.Next() {
+		var u models.User
+		if err := rows.Scan(&u.ID, &u.UserID, &u.Name, &u.TeamID, &u.IsActive); err != nil {
+			return nil, fmt.Errorf("scan user: %w", err)
+		}
+		users = append(users, u)
+	}
+	return users, rows.Err()
 }

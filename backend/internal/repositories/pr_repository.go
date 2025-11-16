@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/KurmaevAmir/pull-request-service/backend/internal/dtos"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 
@@ -21,6 +22,9 @@ type PRRepository interface {
 	RemoveReviewer(ctx context.Context, prID int64, userID int64) error
 	AddReviewer(ctx context.Context, prID int64, userID int64, slot int) error
 	ExistsByPullRequestID(ctx context.Context, prID string) (bool, error)
+	GetOpenPRsWithReviewers(ctx context.Context, deactivatedInternalIDs []int64) ([]dtos.PRWithReviewers, error)
+	ReplaceReviewer(ctx context.Context, prID int64, oldReviewerID, newReviewerID int64, slot int) error
+	GetReviewerSlot(ctx context.Context, prID, reviewerID int64) (int, error)
 }
 
 type pgPRRepository struct {
@@ -178,4 +182,101 @@ func (r *pgPRRepository) ExistsByPullRequestID(ctx context.Context, prID string)
 		return false, fmt.Errorf("check pr exists: %w", err)
 	}
 	return exists, nil
+}
+
+func (r *pgPRRepository) GetOpenPRsWithReviewers(ctx context.Context,
+	deactivatedInternalIDs []int64) ([]dtos.PRWithReviewers, error) {
+	const q = `
+        SELECT DISTINCT
+            pr.id, pr.pr_id, pr.title, pr.author_id, pr.status::text,
+            prr.reviewer_id, prr.slot,
+            u.user_id, u.name, u.team_id, u.is_active
+        FROM pull_requests pr
+        JOIN pr_reviews prr ON pr.id = prr.pr_id
+        JOIN users u ON prr.reviewer_id = u.id
+        WHERE pr.status = 'OPEN'
+          AND pr.deleted_at IS NULL
+          AND prr.reviewer_id = ANY($1)
+        ORDER BY pr.id, prr.slot
+    `
+	rows, err := r.pool.Query(ctx, q, deactivatedInternalIDs)
+	if err != nil {
+		return nil, fmt.Errorf("get open PRs with reviewers: %w", err)
+	}
+	defer rows.Close()
+
+	prMap := make(map[int64]*dtos.PRWithReviewers)
+	for rows.Next() {
+		var prID, authorID, reviewerID, teamID int64
+		var prExtID, title, status, userID, name string
+		var slot int
+		var isActive bool
+
+		if err := rows.Scan(&prID, &prExtID, &title, &authorID,
+			&status, &reviewerID, &slot, &userID, &name, &teamID,
+			&isActive); err != nil {
+			return nil, fmt.Errorf("scan pr with reviewer: %w", err)
+		}
+
+		if _, exists := prMap[prID]; !exists {
+			prMap[prID] = &dtos.PRWithReviewers{
+				PR: models.PullRequest{
+					ID:            prID,
+					PullRequestID: prExtID,
+					Title:         title,
+					AuthorUserID:  authorID,
+					Status:        status,
+				},
+				Reviewers: []models.User{},
+			}
+		}
+
+		prMap[prID].Reviewers = append(prMap[prID].Reviewers, models.User{
+			ID:       reviewerID,
+			UserID:   userID,
+			Name:     name,
+			TeamID:   teamID,
+			IsActive: isActive,
+		})
+	}
+
+	result := make([]dtos.PRWithReviewers, 0, len(prMap))
+	for _, prwr := range prMap {
+		result = append(result, *prwr)
+	}
+	return result, rows.Err()
+}
+
+func (r *pgPRRepository) ReplaceReviewer(
+	ctx context.Context,
+	prID int64,
+	oldReviewerID,
+	newReviewerID int64,
+	slot int) error {
+	const q = `
+        UPDATE pr_reviews
+        SET reviewer_id = $1, assigned_at = NOW()
+        WHERE pr_id = $2 AND reviewer_id = $3 AND slot = $4
+    `
+	res, err := r.pool.Exec(ctx, q, newReviewerID, prID, oldReviewerID, slot)
+	if err != nil {
+		return fmt.Errorf("replace reviewer: %w", err)
+	}
+	if res.RowsAffected() == 0 {
+		return ErrNotFound
+	}
+	return nil
+}
+
+func (r *pgPRRepository) GetReviewerSlot(ctx context.Context, prID, reviewerID int64) (int, error) {
+	const q = `SELECT slot FROM pr_reviews WHERE pr_id = $1 AND reviewer_id = $2`
+	var slot int
+	err := r.pool.QueryRow(ctx, q, prID, reviewerID).Scan(&slot)
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return 0, ErrNotFound
+		}
+		return 0, fmt.Errorf("get reviewer slot: %w", err)
+	}
+	return slot, nil
 }

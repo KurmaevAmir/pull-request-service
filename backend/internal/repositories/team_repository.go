@@ -70,7 +70,8 @@ func (r *PgTeamRepository) CreateTeamWithMembers(ctx context.Context, teamName s
 	return nil
 }
 
-func (r *PgTeamRepository) GetTeamWithMembers(ctx context.Context, teamName string) (models.Team, []models.User, error) {
+func (r *PgTeamRepository) GetTeamWithMembers(ctx context.Context,
+	teamName string) (models.Team, []models.User, error) {
 	var t models.Team
 	if err := r.pool.QueryRow(ctx, `SELECT id, name FROM teams WHERE name=$1`, teamName).
 		Scan(&t.ID, &t.Name); err != nil {
@@ -106,7 +107,8 @@ func (r *PgTeamRepository) GetTeamWithMembers(ctx context.Context, teamName stri
 	return t, users, nil
 }
 
-func (r *PgTeamRepository) ExistsTeamWithMembers(ctx context.Context, teamName string, members []models.User) (bool, error) {
+func (r *PgTeamRepository) ExistsTeamWithMembers(ctx context.Context,
+	teamName string, members []models.User) (bool, error) {
 	var dummy int
 	if err := r.pool.QueryRow(ctx,
 		`SELECT 1 FROM teams WHERE name = $1`,

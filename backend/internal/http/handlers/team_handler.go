@@ -45,3 +45,19 @@ func (h *TeamHandler) GetTeam(c *gin.Context) {
 	}
 	c.JSON(http.StatusOK, dtos.TeamResponse{Team: out})
 }
+
+func (h *TeamHandler) BulkDeactivate(c *gin.Context) {
+	var req dtos.BulkDeactivateRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		RenderError(c, errors.New(errors.CodeValidation, "invalid request"))
+		return
+	}
+
+	resp, err := h.svc.BulkDeactivate(c.Request.Context(), req)
+	if err != nil {
+		RenderError(c, err)
+		return
+	}
+
+	c.JSON(http.StatusOK, resp)
+}

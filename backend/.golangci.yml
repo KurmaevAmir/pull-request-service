@@ -1,0 +1,26 @@
+version: 2
+
+run:
+  timeout: 5m
+  tests: true
+
+linters:
+  enable:
+    - errcheck
+    - govet
+    - ineffassign
+    - staticcheck
+    - unused
+    - gocyclo
+    - goconst
+    - misspell
+    - lll
+    - unparam
+    - nakedret
+    - prealloc
+    - bodyclose
+    - noctx
+
+issues:
+  max-issues-per-linter: 0
+  max-same-issues: 0
